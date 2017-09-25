@@ -28,6 +28,7 @@
 # ##############################################################################
 
 import github.GithubObject
+import re
 
 
 class PaginatedListBase:
@@ -125,7 +126,17 @@ class PaginatedList(PaginatedListBase):
     @property
     def totalCount(self):
         if not self.__totalCount:
-            self._grow()
+            pars = {} if self._PaginatedList__nextParams is None else self._PaginatedList__nextParams.copy()
+            pars.update({"per_page" : 1, "page" : 1}) 
+            headers, data = self._PaginatedList__requester.requestJsonAndCheck(
+                "GET",
+                self._PaginatedList__firstUrl,
+                parameters=pars,
+                headers=self._PaginatedList__headers
+            )
+            if not 'link' in headers:
+                return 1
+            return int(re.match(r'.*[&\?]page=(\d*).*?rel="last"', headers['link']).group(1))
 
         return self.__totalCount
 
